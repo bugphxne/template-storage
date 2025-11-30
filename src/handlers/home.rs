@@ -5,6 +5,7 @@ pub async fn home() -> HttpResponse {
     let info = r#"{
   "status": "running",
   "endpoints": {
+    "GET /": "/files/": "Display files in storage",
     "POST /api/upload": "Upload files (form-data: path, file)",
     "POST /api/list": "List files (JSON: {path, limit?})",
     "POST /api/size": "Get size (JSON: {path})",
