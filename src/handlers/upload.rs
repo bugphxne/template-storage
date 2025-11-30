@@ -1,12 +1,12 @@
 use actix_multipart::Multipart;
 use actix_web::{HttpResponse, post, web};
 use futures_util::StreamExt;
-use sanitize_filename::sanitize;
 use tokio::fs;
 use tokio::io::AsyncWriteExt;
+use uuid::Uuid;
 
 use crate::config::AppConfig;
-use crate::utils::path::safe_join;
+use crate::utils::path::{get_relative_path, safe_join};
 
 #[post("/upload")]
 pub async fn upload_file(
@@ -16,7 +16,7 @@ pub async fn upload_file(
     let base = std::path::Path::new(&cfg.base_dir);
 
     let mut target_path: Option<String> = None;
-    let mut saved_files: Vec<String> = vec![];
+    let mut saved_files: Vec<serde_json::Value> = vec![];
 
     while let Some(item) = payload.next().await {
         let mut field = item?;
@@ -34,7 +34,7 @@ pub async fn upload_file(
                     target_path = Some(path_str.trim().to_string());
                 }
             }
-            
+
             "file" => {
                 let rel = target_path.clone().unwrap_or_default();
 
@@ -45,10 +45,18 @@ pub async fn upload_file(
                     actix_web::error::ErrorInternalServerError(format!("mkdir: {}", e))
                 })?;
 
-                let filename = content_disposition
+                let uuid = Uuid::new_v4();
+                let ext = content_disposition
                     .get_filename()
-                    .map(|n| sanitize(n))
-                    .unwrap_or_else(|| "file.bin".to_string());
+                    .and_then(|f| std::path::Path::new(f).extension())
+                    .and_then(|e| e.to_str())
+                    .unwrap_or("");
+
+                let filename = if ext.is_empty() {
+                    uuid.to_string()
+                } else {
+                    format!("{}.{}", uuid, ext)
+                };
 
                 let fullpath = safe_dir.join(&filename);
 
@@ -62,7 +70,10 @@ pub async fn upload_file(
                     })?;
                 }
 
-                saved_files.push(fullpath.to_string_lossy().to_string());
+                saved_files.push(serde_json::json!({
+                    "id": uuid.to_string(),
+                    "path": get_relative_path(base, &fullpath)
+                }));
             }
 
             _ => {

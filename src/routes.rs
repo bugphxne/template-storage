@@ -1,13 +1,13 @@
 use actix_web::web;
 
-use crate::handlers::{upload, delete, list, size};
+use crate::handlers::{delete, home, list, size, upload};
 
 pub fn api(cfg: &mut web::ServiceConfig) {
-    cfg.service(
+    cfg.service(home::home).service(
         web::scope("/api")
             .service(upload::upload_file)
             .service(delete::delete_path)
             .service(list::list_files)
-            .service(size::get_size)
+            .service(size::get_size),
     );
 }
