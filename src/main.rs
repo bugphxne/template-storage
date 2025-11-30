@@ -4,6 +4,7 @@ mod routes;
 mod utils;
 
 use actix_cors::Cors;
+use actix_files::Files;
 use actix_web::{App, HttpServer};
 use config::AppConfig;
 
@@ -14,6 +15,11 @@ async fn main() -> std::io::Result<()> {
     std::fs::create_dir_all(&cfg.base_dir)?;
 
     println!("Server running at http://{}:{}", cfg.domain, cfg.port);
+    println!("Storage path: {}", cfg.base_dir);
+    println!(
+        "Public files accessible at: http://{}:{}/files/",
+        cfg.domain, cfg.port
+    );
 
     let server_cfg = cfg.clone();
     HttpServer::new(move || {
@@ -25,6 +31,11 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .app_data(actix_web::web::Data::new(server_cfg.clone()))
             .wrap(cors)
+            .service(
+                Files::new("/files", &server_cfg.base_dir)
+                    .show_files_listing()
+                    .use_last_modified(true),
+            )
             .configure(routes::api)
     })
     .bind((cfg.domain, cfg.port))?
