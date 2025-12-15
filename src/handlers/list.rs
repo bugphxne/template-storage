@@ -1,8 +1,9 @@
 use actix_web::{HttpResponse, post, web};
 use serde::Deserialize;
+use std::path::Path;
 use tokio::fs;
 
-use crate::config::AppConfig;
+use crate::constants::UPLOADS_DIR;
 use crate::utils::path::safe_join;
 
 #[derive(Deserialize)]
@@ -12,23 +13,20 @@ pub struct ListRequest {
 }
 
 #[post("/list")]
-pub async fn list_files(
-    cfg: web::Data<AppConfig>,
-    req: web::Json<ListRequest>,
-) -> Result<HttpResponse, actix_web::Error> {
-    let full = safe_join(std::path::Path::new(&cfg.base_dir), &req.path)
-        .map_err(|e| actix_web::error::ErrorBadRequest(e))?;
+pub async fn list_files(req: web::Json<ListRequest>) -> Result<HttpResponse, actix_web::Error> {
+    let full =
+        safe_join(Path::new(UPLOADS_DIR), &req.path).map_err(actix_web::error::ErrorBadRequest)?;
 
-    let mut result = vec![];
-
+    let mut result = Vec::new();
     let mut dir = fs::read_dir(&full)
         .await
-        .map_err(|e| actix_web::error::ErrorBadRequest(e))?;
+        .map_err(actix_web::error::ErrorBadRequest)?;
 
     while let Some(entry) = dir.next_entry().await? {
         result.push(entry.file_name().to_string_lossy().to_string());
-        if let Some(lim) = req.limit {
-            if result.len() >= lim {
+
+        if let Some(limit) = req.limit {
+            if result.len() >= limit {
                 break;
             }
         }

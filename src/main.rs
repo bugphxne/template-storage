@@ -1,4 +1,5 @@
 mod config;
+mod constants;
 mod handlers;
 mod routes;
 mod utils;
@@ -7,17 +8,17 @@ use actix_cors::Cors;
 use actix_files::Files;
 use actix_web::{App, HttpServer};
 use config::AppConfig;
+use constants::UPLOADS_DIR;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let cfg = AppConfig::load();
 
-    std::fs::create_dir_all(&cfg.base_dir)?;
+    std::fs::create_dir_all(UPLOADS_DIR)?;
 
     println!("Server running at http://{}:{}", cfg.domain, cfg.port);
-    println!("Storage path: {}", cfg.base_dir);
     println!(
-        "Public files accessible at: http://{}:{}/files/",
+        "Public files accessible at: http://{}:{}/uploads/",
         cfg.domain, cfg.port
     );
 
@@ -29,10 +30,9 @@ async fn main() -> std::io::Result<()> {
             .allow_any_header();
 
         App::new()
-            .app_data(actix_web::web::Data::new(server_cfg.clone()))
             .wrap(cors)
             .service(
-                Files::new("/files", &server_cfg.base_dir)
+                Files::new("/uploads", UPLOADS_DIR)
                     .show_files_listing()
                     .use_last_modified(true),
             )
