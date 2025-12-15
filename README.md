@@ -29,18 +29,51 @@ Lamplace Storage is a lightweight, high-performance file storage service built w
    cargo run
    ```
 
-The server will start at [YOUR_DOMAIN]:[YOUR_PORT].
+The server will start at `http://127.0.0.1:8080` by default.
 
 ## Configuration
 
-The application configuration is located in `src/config.rs`.
+The application configuration is located in `src/config.rs` and `src/constants.rs`.
 
-- **Base Directory**: Files are stored in [YOUR_STORAGE_PATH] by default.
-- **CORS**: Configured to allow specific origins (default: `*`).
+You can configure the following via environment variables (create a `.env` file):
+
+- **DOMAIN**: Server domain (default: `127.0.0.1`)
+- **PORT**: Server port (default: `8080`)
+- **ALLOW_DOMAIN**: CORS allowed origins (default: `*`)
+
+Files are stored in the `uploads/` directory by default.
 
 ## API Endpoints
 
-### 1. Upload File
+### 1. API Information
+
+**GET** `/`
+
+Returns API status and available endpoints.
+
+**Example:**
+
+```bash
+curl http://127.0.0.1:8080/
+```
+
+**Response:**
+
+```json
+{
+  "status": "running",
+  "endpoints": {
+    "GET /": "API information",
+    "GET /uploads/": "Display files in storage",
+    "POST /api/upload": "Upload files (form-data: path, file)",
+    "POST /api/list": "List files (JSON: {path, limit?})",
+    "POST /api/size": "Get size (JSON: {path})",
+    "DELETE /api/delete": "Delete path (JSON: {path})"
+  }
+}
+```
+
+### 2. Upload File
 
 **POST** `/api/upload`
 
@@ -51,15 +84,66 @@ Uploads a file to the storage. Supports `multipart/form-data`.
 - `path` (text, optional): The relative path where the file should be saved (e.g., `images/user1`).
 - `file` (file, required): The file to upload.
 
-**Example (curl):**
+**Example:**
 
 ```bash
-curl -X POST [YOUR_DOMAIN]:[YOUR_PORT]/api/upload \
+curl -X POST http://127.0.0.1:8080/api/upload \
   -F "path=documents/work" \
   -F "file=@./my-document.pdf"
 ```
 
-### 2. Delete File/Directory
+### 3. List Files
+
+**POST** `/api/list`
+
+Lists files and directories in a specified path.
+
+**Request Body (JSON):**
+
+- `path` (string, required): The relative path to list.
+- `limit` (number, optional): Maximum number of items to return.
+
+**Example:**
+
+```bash
+curl -X POST http://127.0.0.1:8080/api/list \
+  -H "Content-Type: application/json" \
+  -d '{"path": "documents", "limit": 10}'
+```
+
+**Response:**
+
+```json
+["file1.pdf", "file2.txt", "subfolder"]
+```
+
+### 4. Get Size
+
+**POST** `/api/size`
+
+Gets the total size of a file or directory (recursive).
+
+**Request Body (JSON):**
+
+- `path` (string, required): The relative path to check.
+
+**Example:**
+
+```bash
+curl -X POST http://127.0.0.1:8080/api/size \
+  -H "Content-Type: application/json" \
+  -d '{"path": "documents"}'
+```
+
+**Response:**
+
+```json
+{
+  "bytes": 1048576
+}
+```
+
+### 5. Delete File/Directory
 
 **DELETE** `/api/delete`
 
@@ -72,18 +156,14 @@ Recursively deletes a file or directory.
 **Example:**
 
 ```bash
-curl -X DELETE "[YOUR_DOMAIN]:[YOUR_PORT]/api/delete?path=documents/work"
+curl -X DELETE "http://127.0.0.1:8080/api/delete?path=documents/work"
 ```
 
-### 3. List Files
+### 6. Browse Files
 
-**GET** `/api/list`
-_(Implementation details depend on `src/handlers/list.rs`)_
+**GET** `/uploads/{path}`
 
-### 4. Get Size
-
-**GET** `/api/size`
-_(Implementation details depend on `src/handlers/size.rs`)_
+Serves static files from the uploads directory. Access uploaded files directly via browser or download.
 
 ## Project Structure
 
