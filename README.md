@@ -1,6 +1,6 @@
-# Lamplace Storage
+# Template Storage
 
-Lamplace Storage is a lightweight, high-performance file storage service built with Rust and Actix-web. It provides a simple HTTP API for uploading, managing, and deleting files with built-in path safety mechanisms.
+Template Storage is a lightweight, high-performance file storage service built with Rust and Actix-web. It provides a simple HTTP API for uploading, managing, and deleting files with built-in path safety mechanisms.
 
 ## Features
 
